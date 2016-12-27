@@ -1,0 +1,161 @@
+#tag Class
+Protected Class NDataStoreItem
+Inherits NCMB.NDataStore
+	#tag Method, Flags = &h0
+		Sub Constructor(name as string)
+		  // Calling the overridden superclass constructor.
+		  Super.Constructor(name)
+		  self.name = name
+		End Sub
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Function getFqdn() As String
+		  return "mb.api.cloud.nifty.com"
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Function getMethod() As String
+		  Dim method as string
+		  
+		  if Self.objectId = "" then
+		    method = "POST"
+		  else
+		    method = "PUT"
+		  end if
+		  return method
+		  
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Function getPath() As String
+		  return "/2013-09-01/classes/"+Self.name
+		  
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Function getQuery() As JSONItem
+		  return self.query
+		  
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Function getTimeStamp(date as Date) As String
+		  Dim formatString as string = "YYYY-mm-ddTHH:MM:SS.000Z"
+		  formatString = formatString.ReplaceAll("YYYY", str(date.Year))
+		  formatString = formatString.ReplaceAll("mm", Format(date.Month, "00"))
+		  formatString = formatString.ReplaceAll("dd", Format(date.Day, "00"))
+		  formatString = formatString.ReplaceAll("HH", Format(date.Hour, "00"))
+		  formatString = formatString.ReplaceAll("MM", Format(date.Minute, "00"))
+		  formatString = formatString.ReplaceAll("SS", Format(date.Second, "00"))
+		  
+		  return formatString
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Function getUrl() As String
+		  return "https://" + self.getFqdn + self.getPath
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Function save() As Boolean
+		  Dim method as string
+		  Dim timestamp as new Date
+		  Dim strSignature as String
+		  
+		  strSignature = NCMB.request.generate_signature(self.getMethod, _
+		  self.getFqdn, self.getPath, _
+		  self.fields, self.getTimeStamp(timestamp))
+		  
+		  dim NCMBSocket as HTTPSecureSocket = new HTTPSecureSocket 
+		  NCMBSocket.SetRequestHeader("X-NCMB-Application-Key", NCMB.request.application_key)
+		  NCMBSocket.SetRequestHeader("X-NCMB-Timestamp", self.getTimeStamp(timestamp))
+		  NCMBSocket.SetRequestHeader("X-NCMB-Signature", strSignature)
+		  NCMBSocket.SetRequestHeader("Content-Type", "application/json")
+		  NCMBSocket.SetRequestContent(self.fields.toString, "application/json")
+		  
+		  System.DebugLog(str(NCMBSocket.SendRequest(self.getMethod, self.getUrl(), 30)))
+		  
+		  System.DebugLog("Test")
+		  return true
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Function set(key as string, val as Variant) As NCMB.DataStore.NDataStoreItem
+		  
+		  if self.fields = nil then
+		    self.fields = new JSONItem
+		  end if
+		  self.fields.Value(key) = val
+		  return Self
+		End Function
+	#tag EndMethod
+
+
+	#tag Property, Flags = &h0
+		fields As JSONItem
+	#tag EndProperty
+
+	#tag Property, Flags = &h0
+		name As String
+	#tag EndProperty
+
+	#tag Property, Flags = &h0
+		objectId As String
+	#tag EndProperty
+
+	#tag Property, Flags = &h0
+		query As JSONItem
+	#tag EndProperty
+
+
+	#tag ViewBehavior
+		#tag ViewProperty
+			Name="Index"
+			Visible=true
+			Group="ID"
+			InitialValue="-2147483648"
+			Type="Integer"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="Left"
+			Visible=true
+			Group="Position"
+			InitialValue="0"
+			Type="Integer"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="name"
+			Visible=true
+			Group="ID"
+			Type="String"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="objectId"
+			Group="Behavior"
+			Type="String"
+			EditorType="MultiLineEditor"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="Super"
+			Visible=true
+			Group="ID"
+			Type="String"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="Top"
+			Visible=true
+			Group="Position"
+			InitialValue="0"
+			Type="Integer"
+		#tag EndViewProperty
+	#tag EndViewBehavior
+End Class
+#tag EndClass

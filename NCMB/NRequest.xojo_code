@@ -1,0 +1,206 @@
+#tag Class
+Protected Class NRequest
+	#tag Method, Flags = &h0
+		Sub Constructor(application_key as string, client_key as string)
+		  self.application_key = application_key
+		  self.client_key = client_key
+		End Sub
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Function delete(path as string) As JSONItem
+		  return Self.send("DELETE", path, nil)
+		  
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h21
+		Private Function generateSignature(method as string, fqdn as string, path as string, query as JSONItem, timestamp as string) As String
+		  Dim aryStr() as String
+		  Dim aryQuery() as string
+		  
+		  aryStr.Append(method)
+		  aryStr.Append(fqdn)
+		  aryStr.Append(path)
+		  
+		  dim k, v as Variant
+		  dim aryParams() as string
+		  
+		  for each k in query.Names
+		    ' aryParams.Append(EncodeURLComponent(str(k)) + "=" + EncodeURLComponent(query.Value(k))
+		  next
+		  
+		  aryQuery.Append("SignatureMethod=" + Self.SignatureMethod)
+		  aryQuery.Append("SignatureVersion=" + Self.SignatureVersion)
+		  aryQuery.Append("X-NCMB-Application-Key=" + Self.application_key)
+		  aryQuery.Append("X-NCMB-Timestamp=" + timestamp)
+		  if aryParams.Ubound > 0 then
+		    aryQuery.Append(Join(aryParams, "&"))
+		  end if
+		  aryStr.Append(Join(aryQuery, "&"))
+		  
+		  Dim strSignatureString as string
+		  strSignatureString = join(aryStr, ENDOFLINE.UNIX)
+		  
+		  Dim signature As String
+		  
+		  signature = EncodeBase64(Crypto.HMAC(Self.client_key, strSignatureString, Crypto.Algorithm.SHA256), 0)
+		  
+		  return signature
+		  
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Function get(path as string, fields as JSONItem) As JSONItem
+		  return Self.send("GET", path, fields)
+		  
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Function post(path as string, fields as JSONItem) As JSONItem
+		  return Self.send("POST", path, fields)
+		  
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Function put(path as string, fields as JSONItem) As JSONItem
+		  return Self.send("PUT", path, fields)
+		  
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h21
+		Private Function send(method as string, path as string, fields as JSONItem) As JSONItem
+		  Dim timestamp as new Date
+		  Dim strSignature as String
+		  Dim strTimeStamp as string = self.timeStamp(timestamp)
+		  Dim response as JSONItem
+		  
+		  if fields = nil then
+		    fields = new JSONItem
+		  end if
+		  
+		  strSignature = NCMB.request.generateSignature(method, _
+		  self.fqdn, path, _
+		  fields, strTimeStamp)
+		  
+		  dim NCMBSocket as HTTPSecureSocket = new HTTPSecureSocket 
+		  NCMBSocket.SetRequestHeader("X-NCMB-Application-Key", NCMB.request.application_key)
+		  NCMBSocket.SetRequestHeader("X-NCMB-Timestamp", strTimeStamp)
+		  NCMBSocket.SetRequestHeader("X-NCMB-Signature", strSignature)
+		  if NCMB.sessionToken <> "" then
+		    NCMBSocket.SetRequestHeader("X-NCMB-Apps-Session-Token", NCMB.sessionToken)
+		  end if
+		  NCMBSocket.SetRequestHeader("Content-Type", "application/json")
+		  NCMBSocket.SetRequestContent(fields.toString, "application/json")
+		  
+		  Dim url as string = "https://" + self.fqdn + path
+		  
+		  response = new JSONItem(str(NCMBSocket.SendRequest(method, url, 1)))
+		  
+		  if NCMBSocket.ErrorCode <> 0 then
+		    response.value("code") = NCMBSocket.ErrorCode
+		    response.value("error") = "Network Error"
+		  end if
+		  
+		  return response
+		  
+		  
+		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h21
+		Private Function timeStamp(date as Date) As String
+		  Dim formatString as string = "YYYY-mm-ddTHH:MM:SS.000Z"
+		  formatString = formatString.ReplaceAll("YYYY", str(date.Year))
+		  formatString = formatString.ReplaceAll("mm", Format(date.Month, "00"))
+		  formatString = formatString.ReplaceAll("dd", Format(date.Day, "00"))
+		  formatString = formatString.ReplaceAll("HH", Format(date.Hour, "00"))
+		  formatString = formatString.ReplaceAll("MM", Format(date.Minute, "00"))
+		  formatString = formatString.ReplaceAll("SS", Format(date.Second, "00"))
+		  
+		  return formatString
+		End Function
+	#tag EndMethod
+
+
+	#tag Property, Flags = &h0
+		application_key As String
+	#tag EndProperty
+
+	#tag Property, Flags = &h0
+		client_key As String
+	#tag EndProperty
+
+	#tag Property, Flags = &h0
+		fqdn As String = "mb.api.cloud.nifty.com"
+	#tag EndProperty
+
+	#tag Property, Flags = &h21
+		Private SignatureMethod As String = "HmacSHA256"
+	#tag EndProperty
+
+	#tag Property, Flags = &h21
+		Private SignatureVersion As String = "2"
+	#tag EndProperty
+
+
+	#tag ViewBehavior
+		#tag ViewProperty
+			Name="application_key"
+			Group="Behavior"
+			Type="String"
+			EditorType="MultiLineEditor"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="client_key"
+			Group="Behavior"
+			Type="String"
+			EditorType="MultiLineEditor"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="fqdn"
+			Group="Behavior"
+			InitialValue="mb.api.cloud.nifty.com"
+			Type="String"
+			EditorType="MultiLineEditor"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="Index"
+			Visible=true
+			Group="ID"
+			InitialValue="-2147483648"
+			Type="Integer"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="Left"
+			Visible=true
+			Group="Position"
+			InitialValue="0"
+			Type="Integer"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="Name"
+			Visible=true
+			Group="ID"
+			Type="String"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="Super"
+			Visible=true
+			Group="ID"
+			Type="String"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="Top"
+			Visible=true
+			Group="Position"
+			InitialValue="0"
+			Type="Integer"
+		#tag EndViewProperty
+	#tag EndViewBehavior
+End Class
+#tag EndClass
