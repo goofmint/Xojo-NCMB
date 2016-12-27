@@ -12,6 +12,21 @@
 - [x] ユーザログイン（ID/パスワード）
 - [x] ロール（パブリックリード/ライト）
 
+## データストアへの登録
+
+```
+Dim DataClass as NCMB.DataStore = new NCMB.DataStore("DataClass")
+Dim dataItem as NCMB.DataStoreItem =  DataClass.new_data
+dataItem.set("msg", "Hello")
+if dataItem.save() then
+  // 保存成功
+else
+  // 保存失敗
+  dataItem.error.code // エラーコード
+  dataItem.error.error // エラーメッセージ
+end if
+```
+
 ## LICENSE
 
 MIT.
