@@ -1,6 +1,6 @@
 # NCMB SDK for Xojo
 
-Xojoからニフティクラウド mobile backendを使うためのライブラリです。
+[Xojo](https://xojo.grapecity.com)から[ニフティクラウド mobile backend](http://mb.cloud.nifty.com)を使うためのライブラリです。
 
 ## 現在サポートされている機能
 
